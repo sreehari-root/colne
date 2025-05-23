@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Package, Search, Eye, Filter, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,121 +30,91 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import AdminLayout from '@/components/layout/AdminLayout';
+import { supabase } from '@/integrations/supabase/client'; // Import Supabase client
 
-// Mock orders data
-const mockOrders = [
-  {
-    id: 'ORD-1001',
-    customer: 'Rahul Sharma',
-    email: 'rahul.s@example.com',
-    date: new Date(2025, 4, 20),
-    status: 'completed',
-    total: 12500,
-    items: [
-      { id: 1, name: 'Embroidered Silk Saree', price: 8500, quantity: 1 },
-      { id: 2, name: 'Designer Blouse', price: 4000, quantity: 1 },
-    ],
-    address: {
-      line1: '42 Brigade Road',
-      line2: 'Apartment 303',
-      city: 'Bangalore',
-      state: 'Karnataka',
-      postal_code: '560001',
-    },
-  },
-  {
-    id: 'ORD-1002',
-    customer: 'Priya Patel',
-    email: 'priya.p@example.com',
-    date: new Date(2025, 4, 21),
-    status: 'processing',
-    total: 7200,
-    items: [
-      { id: 3, name: 'Handcrafted Jhumkas', price: 2400, quantity: 3 },
-    ],
-    address: {
-      line1: '78 Park Street',
-      line2: 'Floor 2',
-      city: 'Mumbai',
-      state: 'Maharashtra',
-      postal_code: '400001',
-    },
-  },
-  {
-    id: 'ORD-1003',
-    customer: 'Vijay Kumar',
-    email: 'vijay.k@example.com',
-    date: new Date(2025, 4, 22),
-    status: 'pending',
-    total: 18700,
-    items: [
-      { id: 4, name: 'Designer Lehenga', price: 15000, quantity: 1 },
-      { id: 5, name: 'Matching Dupatta', price: 3700, quantity: 1 },
-    ],
-    address: {
-      line1: '23 MG Road',
-      line2: '',
-      city: 'Delhi',
-      state: 'Delhi',
-      postal_code: '110001',
-    },
-  },
-  {
-    id: 'ORD-1004',
-    customer: 'Ananya Singh',
-    email: 'ananya.s@example.com',
-    date: new Date(2025, 4, 23),
-    status: 'shipped',
-    total: 9500,
-    items: [
-      { id: 6, name: 'Traditional Anarkali Suit', price: 9500, quantity: 1 },
-    ],
-    address: {
-      line1: '56 Gandhi Nagar',
-      line2: 'House No. 12',
-      city: 'Hyderabad',
-      state: 'Telangana',
-      postal_code: '500001',
-    },
-  },
-  {
-    id: 'ORD-1005',
-    customer: 'Kiran Rao',
-    email: 'kiran.r@example.com',
-    date: new Date(2025, 4, 23),
-    status: 'cancelled',
-    total: 6800,
-    items: [
-      { id: 7, name: 'Designer Clutch', price: 3400, quantity: 2 },
-    ],
-    address: {
-      line1: '89 Civil Lines',
-      line2: 'Near City Park',
-      city: 'Jaipur',
-      state: 'Rajasthan',
-      postal_code: '302001',
-    },
-  },
-];
+// Define types for order data
+interface OrderItem {
+  id: number;
+  name: string;
+  price: number;
+  quantity: number;
+}
 
-type OrderStatus = 'pending' | 'processing' | 'shipped' | 'completed' | 'cancelled';
+interface ShippingAddress {
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  postal_code: string;
+}
+
+export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'completed' | 'cancelled';
+
+export interface Order {
+  id: string;
+  customer_name: string;
+  customer_email: string;
+  order_date: string; // Assuming date is stored as string in Supabase
+  status: OrderStatus;
+  total_amount: number;
+  items: OrderItem[];
+  shipping_address: ShippingAddress;
+}
 
 const OrdersPage = () => {
   const { toast } = useToast();
-  const [orders, setOrders] = useState(mockOrders);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const ordersPerPage = 10;
+
+  // Fetch orders from Supabase
+  useEffect(() => {
+    const fetchOrders = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('*');
+
+        if (error) {
+          throw error;
+        }
+        // Ensure items and shipping_address are parsed if they are stored as JSON strings
+        const parsedData = data.map(order => ({
+          ...order,
+          order_date: order.order_date ? new Date(order.order_date).toISOString() : new Date().toISOString(), // Ensure date is in a consistent format
+          items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items,
+          shipping_address: typeof order.shipping_address === 'string' ? JSON.parse(order.shipping_address) : order.shipping_address,
+        }));
+        setOrders(parsedData);
+      } catch (err: any) {
+        setError(err.message || 'Failed to fetch orders.');
+        toast({
+          title: "Error fetching orders",
+          description: err.message || 'An unexpected error occurred.',
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, [toast]);
   
   // Filter orders based on search term and status
   const filteredOrders = orders.filter(order => {
     const matchesSearch = 
       order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.email.toLowerCase().includes(searchTerm.toLowerCase());
+      order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customer_email.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     
@@ -157,21 +127,47 @@ const OrdersPage = () => {
   const currentOrders = filteredOrders.slice(indexOfFirstOrder, indexOfLastOrder);
   const pageCount = Math.ceil(filteredOrders.length / ordersPerPage);
   
-  const viewOrder = (order: any) => {
+  const viewOrder = (order: Order) => {
     setSelectedOrder(order);
     setIsViewModalOpen(true);
   };
   
-  const updateOrderStatus = (orderId: string, newStatus: OrderStatus) => {
-    const updatedOrders = orders.map(order => 
-      order.id === orderId ? { ...order, status: newStatus } : order
-    );
-    setOrders(updatedOrders);
-    
-    toast({
-      title: "Order status updated",
-      description: `Order ${orderId} status changed to ${newStatus}`,
-    });
+  const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .update({ status: newStatus })
+        .eq('id', orderId)
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data && data.length > 0) {
+        const updatedOrder = data[0];
+        const updatedOrders = orders.map(order =>
+          order.id === orderId ? { ...order, status: updatedOrder.status } : order
+        );
+        setOrders(updatedOrders);
+        toast({
+          title: "Order status updated",
+          description: `Order ${orderId} status changed to ${newStatus}`,
+        });
+      } else {
+        toast({
+          title: "Failed to update status",
+          description: "Order not found or no changes made.",
+          variant: "destructive",
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: "Error updating status",
+        description: err.message || 'An unexpected error occurred.',
+        variant: "destructive",
+      });
+    }
   };
 
   const getStatusBadge = (status: OrderStatus) => {
@@ -194,7 +190,196 @@ const OrdersPage = () => {
   return (
     <AdminLayout>
       <div className="container mx-auto p-6">
-        <div className="flex justify-between items-center mb-6">
+        {/* Loading and Error States */}
+        {isLoading && <p className="text-center py-4">Loading orders...</p>}
+        {error && <p className="text-center py-4 text-red-600">Error: {error}</p>}
+        
+        {!isLoading && !error && (
+          <>
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h1 className="text-2xl font-bold">Orders Management</h1>
+                <p className="text-muted-foreground">View and manage customer orders</p>
+              </div>
+            </div>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle>Order List</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col md:flex-row gap-4 mb-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="search"
+                      placeholder="Search orders..."
+                      className="pl-8"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="w-full md:w-auto">
+                        <Filter className="mr-2 h-4 w-4" />
+                        Filter by Status
+                        <ChevronDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56">
+                      <DropdownMenuItem onClick={() => setStatusFilter('all')}>
+                        All Orders
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setStatusFilter('pending')}>
+                        Pending
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setStatusFilter('processing')}>
+                        Processing
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setStatusFilter('shipped')}>
+                        Shipped
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setStatusFilter('completed')}>
+                        Completed
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setStatusFilter('cancelled')}>
+                        Cancelled
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Order ID</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Total</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {currentOrders.map((order) => (
+                        <TableRow key={order.id}>
+                          <TableCell className="font-medium">{order.id}</TableCell>
+                          <TableCell>
+                            <div>
+                              <p>{order.customer_name}</p>
+                              <p className="text-sm text-muted-foreground">{order.customer_email}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>{format(new Date(order.order_date), 'PP')}</TableCell>
+                          <TableCell>{getStatusBadge(order.status as OrderStatus)}</TableCell>
+                          <TableCell>₹{order.total_amount.toLocaleString('en-IN')}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end space-x-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => viewOrder(order)}
+                              >
+                                <Eye className="h-4 w-4" />
+                                <span className="sr-only">View</span>
+                              </Button>
+                              
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <ChevronDown className="h-4 w-4" />
+                                    <span className="sr-only">Change Status</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem 
+                                    onClick={() => updateOrderStatus(order.id, 'pending')}
+                                    disabled={order.status === 'pending'}
+                                  >
+                                    Mark as Pending
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => updateOrderStatus(order.id, 'processing')}
+                                    disabled={order.status === 'processing'}
+                                  >
+                                    Mark as Processing
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => updateOrderStatus(order.id, 'shipped')}
+                                    disabled={order.status === 'shipped'}
+                                  >
+                                    Mark as Shipped
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => updateOrderStatus(order.id, 'completed')}
+                                    disabled={order.status === 'completed'}
+                                  >
+                                    Mark as Completed
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    onClick={() => updateOrderStatus(order.id, 'cancelled')}
+                                    disabled={order.status === 'cancelled'}
+                                    className="text-red-600"
+                                  >
+                                    Cancel Order
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                
+                {filteredOrders.length > 0 && (
+                  <div className="flex justify-center mt-4">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious 
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                          />
+                        </PaginationItem>
+                        {Array.from({ length: Math.min(5, pageCount) }, (_, i) => {
+                          const pageNumber = Math.max(1, Math.min(currentPage - 2 + i, pageCount));
+                          // Ensure pageNumber does not exceed pageCount
+                          if (pageNumber > pageCount) return null; 
+                          return (
+                            <PaginationItem key={pageNumber}>
+                              <PaginationLink
+                                isActive={currentPage === pageNumber}
+                                onClick={() => setCurrentPage(pageNumber)}
+                              >
+                                {pageNumber}
+                              </PaginationLink>
+                            </PaginationItem>
+                          );
+                        })}
+                        <PaginationItem>
+                          <PaginationNext 
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, pageCount))}
+                            className={currentPage === pageCount ? "pointer-events-none opacity-50" : ""}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
+      </div>
+      
+      {/* Order Detail Modal */}
           <div>
             <h1 className="text-2xl font-bold">Orders Management</h1>
             <p className="text-muted-foreground">View and manage customer orders</p>
@@ -385,12 +570,12 @@ const OrdersPage = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground">Customer</h3>
-                  <p className="font-medium">{selectedOrder.customer}</p>
-                  <p className="text-sm">{selectedOrder.email}</p>
+                  <p className="font-medium">{selectedOrder.customer_name}</p>
+                  <p className="text-sm">{selectedOrder.customer_email}</p>
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground">Order Date</h3>
-                  <p>{format(selectedOrder.date, 'PPP')}</p>
+                  <p>{format(new Date(selectedOrder.order_date), 'PPP')}</p>
                 </div>
               </div>
               
@@ -401,9 +586,9 @@ const OrdersPage = () => {
               
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-1">Shipping Address</h3>
-                <p>{selectedOrder.address.line1}</p>
-                {selectedOrder.address.line2 && <p>{selectedOrder.address.line2}</p>}
-                <p>{selectedOrder.address.city}, {selectedOrder.address.state} {selectedOrder.address.postal_code}</p>
+                <p>{selectedOrder.shipping_address.line1}</p>
+                {selectedOrder.shipping_address.line2 && <p>{selectedOrder.shipping_address.line2}</p>}
+                <p>{selectedOrder.shipping_address.city}, {selectedOrder.shipping_address.state} {selectedOrder.shipping_address.postal_code}</p>
               </div>
               
               <div>
@@ -419,7 +604,7 @@ const OrdersPage = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {selectedOrder.items.map((item: any) => (
+                      {selectedOrder.items && selectedOrder.items.map((item: OrderItem) => (
                         <TableRow key={item.id}>
                           <TableCell>{item.name}</TableCell>
                           <TableCell className="text-right">₹{item.price.toLocaleString('en-IN')}</TableCell>
@@ -436,15 +621,15 @@ const OrdersPage = () => {
                 <div className="w-1/2 space-y-1">
                   <div className="flex justify-between text-sm">
                     <span>Subtotal:</span>
-                    <span>₹{selectedOrder.total.toLocaleString('en-IN')}</span>
+                    <span>₹{selectedOrder.total_amount.toLocaleString('en-IN')}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Shipping:</span>
-                    <span>₹0.00</span>
+                    <span>₹0.00</span> {/* Assuming free shipping for now */}
                   </div>
                   <div className="flex justify-between font-medium">
                     <span>Total:</span>
-                    <span>₹{selectedOrder.total.toLocaleString('en-IN')}</span>
+                    <span>₹{selectedOrder.total_amount.toLocaleString('en-IN')}</span>
                   </div>
                 </div>
               </div>
