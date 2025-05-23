@@ -1,0 +1,102 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 36 33% 98%;
+    --foreground: 350 28% 8%;
+
+    --card: 36 33% 98%;
+    --card-foreground: 350 28% 8%;
+
+    --popover: 36 33% 98%;
+    --popover-foreground: 350 28% 8%;
+
+    --primary: 351 64% 33%;
+    --primary-foreground: 36 33% 98%;
+
+    --secondary: 43 68% 52%;
+    --secondary-foreground: 350 28% 8%;
+
+    --muted: 36 10% 90%;
+    --muted-foreground: 350 10% 30%;
+
+    --accent: 342 31% 63%;
+    --accent-foreground: 36 33% 98%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 36 33% 98%;
+
+    --border: 350 10% 88%;
+    --input: 350 10% 88%;
+    --ring: 43 68% 52%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 350 28% 8%;
+    --foreground: 36 33% 98%;
+
+    --card: 350 28% 8%;
+    --card-foreground: 36 33% 98%;
+
+    --popover: 350 28% 8%;
+    --popover-foreground: 36 33% 98%;
+
+    --primary: 351 64% 33%;
+    --primary-foreground: 36 33% 98%;
+
+    --secondary: 43 68% 52%;
+    --secondary-foreground: 350 28% 8%;
+
+    --muted: 350 10% 20%;
+    --muted-foreground: 350 10% 70%;
+
+    --accent: 342 31% 43%;
+    --accent-foreground: 36 33% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 36 33% 98%;
+
+    --border: 350 10% 28%;
+    --input: 350 10% 28%;
+    --ring: 43 68% 52%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-poppins;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-cormorant font-semibold;
+  }
+  
+  .indian-border {
+    background-image: linear-gradient(to right, transparent, var(--tw-gradient-stops), transparent);
+    @apply from-usha-burgundy via-usha-gold to-usha-burgundy;
+    height: 2px;
+  }
+  
+  .product-card {
+    @apply transition-all duration-300 hover:shadow-lg;
+  }
+  
+  .product-image-container {
+    @apply overflow-hidden;
+  }
+  
+  .product-image {
+    @apply transition-transform duration-500 hover:scale-105;
+  }
+}
