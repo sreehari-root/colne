@@ -91,7 +91,7 @@ const OrdersPage = () => {
           ...order,
           order_date: order.order_date ? new Date(order.order_date).toISOString() : new Date().toISOString(), // Ensure date is in a consistent format
           items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items,
-          shipping_address: typeof order.shipping_address === 'string' ? JSON.parse(order.shipping_address) : order.shipping_address,
+          shipping_address: typeof order.shipping_address === 'string' ? JSON.parse(order.shipping_address) : order.shipping_address, // Added trailing comma
         }));
         setOrders(parsedData);
       } catch (err: any) {
@@ -276,7 +276,7 @@ const OrdersPage = () => {
                           </TableCell>
                           <TableCell>{format(new Date(order.order_date), 'PP')}</TableCell>
                           <TableCell>{getStatusBadge(order.status as OrderStatus)}</TableCell>
-                          <TableCell>₹{order.total_amount.toLocaleString('en-IN')}</TableCell>
+                          <TableCell>₹{order.total_amount}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end space-x-2">
                               <Button
@@ -380,185 +380,6 @@ const OrdersPage = () => {
       </div>
       
       {/* Order Detail Modal */}
-          <div>
-            <h1 className="text-2xl font-bold">Orders Management</h1>
-            <p className="text-muted-foreground">View and manage customer orders</p>
-          </div>
-        </div>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>Order List</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col md:flex-row gap-4 mb-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search orders..."
-                  className="pl-8"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full md:w-auto">
-                    <Filter className="mr-2 h-4 w-4" />
-                    Filter by Status
-                    <ChevronDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56">
-                  <DropdownMenuItem onClick={() => setStatusFilter('all')}>
-                    All Orders
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setStatusFilter('pending')}>
-                    Pending
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter('processing')}>
-                    Processing
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter('shipped')}>
-                    Shipped
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter('completed')}>
-                    Completed
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter('cancelled')}>
-                    Cancelled
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-            
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {currentOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.id}</TableCell>
-                      <TableCell>
-                        <div>
-                          <p>{order.customer}</p>
-                          <p className="text-sm text-muted-foreground">{order.email}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>{format(order.date, 'PP')}</TableCell>
-                      <TableCell>{getStatusBadge(order.status as OrderStatus)}</TableCell>
-                      <TableCell>₹{order.total.toLocaleString('en-IN')}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => viewOrder(order)}
-                          >
-                            <Eye className="h-4 w-4" />
-                            <span className="sr-only">View</span>
-                          </Button>
-                          
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <ChevronDown className="h-4 w-4" />
-                                <span className="sr-only">Change Status</span>
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem 
-                                onClick={() => updateOrderStatus(order.id, 'pending')}
-                                disabled={order.status === 'pending'}
-                              >
-                                Mark as Pending
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => updateOrderStatus(order.id, 'processing')}
-                                disabled={order.status === 'processing'}
-                              >
-                                Mark as Processing
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => updateOrderStatus(order.id, 'shipped')}
-                                disabled={order.status === 'shipped'}
-                              >
-                                Mark as Shipped
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => updateOrderStatus(order.id, 'completed')}
-                                disabled={order.status === 'completed'}
-                              >
-                                Mark as Completed
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                onClick={() => updateOrderStatus(order.id, 'cancelled')}
-                                disabled={order.status === 'cancelled'}
-                                className="text-red-600"
-                              >
-                                Cancel Order
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            
-            {filteredOrders.length > 0 && (
-              <div className="flex justify-center mt-4">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious 
-                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                        className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
-                      />
-                    </PaginationItem>
-                    {Array.from({ length: Math.min(5, pageCount) }, (_, i) => {
-                      const pageNumber = Math.max(1, Math.min(currentPage - 2 + i, pageCount));
-                      return (
-                        <PaginationItem key={pageNumber}>
-                          <PaginationLink
-                            isActive={currentPage === pageNumber}
-                            onClick={() => setCurrentPage(pageNumber)}
-                          >
-                            {pageNumber}
-                          </PaginationLink>
-                        </PaginationItem>
-                      );
-                    })}
-                    <PaginationItem>
-                      <PaginationNext 
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, pageCount))}
-                        className={currentPage === pageCount ? "pointer-events-none opacity-50" : ""}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-      
-      {/* Order Detail Modal */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -607,9 +428,9 @@ const OrdersPage = () => {
                       {selectedOrder.items && selectedOrder.items.map((item: OrderItem) => (
                         <TableRow key={item.id}>
                           <TableCell>{item.name}</TableCell>
-                          <TableCell className="text-right">₹{item.price.toLocaleString('en-IN')}</TableCell>
+                          <TableCell className="text-right">₹{item.price}</TableCell>
                           <TableCell className="text-right">{item.quantity}</TableCell>
-                          <TableCell className="text-right">₹{(item.price * item.quantity).toLocaleString('en-IN')}</TableCell>
+                          <TableCell className="text-right">₹{item.price * item.quantity}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -621,7 +442,7 @@ const OrdersPage = () => {
                 <div className="w-1/2 space-y-1">
                   <div className="flex justify-between text-sm">
                     <span>Subtotal:</span>
-                    <span>₹{selectedOrder.total_amount.toLocaleString('en-IN')}</span>
+                    <span>₹{selectedOrder.total_amount}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Shipping:</span>
@@ -629,7 +450,7 @@ const OrdersPage = () => {
                   </div>
                   <div className="flex justify-between font-medium">
                     <span>Total:</span>
-                    <span>₹{selectedOrder.total_amount.toLocaleString('en-IN')}</span>
+                    <span>₹{selectedOrder.total_amount}</span>
                   </div>
                 </div>
               </div>
