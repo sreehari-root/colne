@@ -88,10 +88,10 @@ const OrdersPage = () => {
         }
         // Ensure items and shipping_address are parsed if they are stored as JSON strings
         const parsedData = data.map(order => ({
-          ...order,
+          ...order, // Comma RE-ADDED after spread operator, as it's required.
           order_date: order.order_date ? new Date(order.order_date).toISOString() : new Date().toISOString(), // Ensure date is in a consistent format
           items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items,
-          shipping_address: typeof order.shipping_address === 'string' ? JSON.parse(order.shipping_address) : order.shipping_address, // Added trailing comma
+          shipping_address: typeof order.shipping_address === 'string' ? JSON.parse(order.shipping_address) : order.shipping_address
         }));
         setOrders(parsedData);
       } catch (err: any) {
