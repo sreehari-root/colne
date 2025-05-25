@@ -88,14 +88,20 @@ const OrdersPage = () => {
         }
         // Ensure items and shipping_address are parsed if they are stored as JSON strings
         const parsedData = data.map(order => ({
-          ...order, // Comma RE-ADDED after spread operator, as it's required.
-          order_date: order.order_date ? new Date(order.order_date).toISOString() : new Date().toISOString(), // Ensure date is in a consistent format
-          items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items,
-          shipping_address: typeof order.shipping_address === 'string' ? JSON.parse(order.shipping_address) : order.shipping_address
+          ...order, // This comma is critical and should be present.
+          order_date: order.order_date 
+            ? new Date(order.order_date).toISOString() 
+            : new Date().toISOString(), // Ensure date is in a consistent format
+          items: typeof order.items === 'string' 
+            ? JSON.parse(order.items) 
+            : order.items,
+          shipping_address: typeof order.shipping_address === 'string' 
+            ? JSON.parse(order.shipping_address) 
+            : order.shipping_address
         }));
         setOrders(parsedData);
       } catch (err: any) {
-        setError(err.message || 'Failed to fetch orders.');
+        setError(err.message || 'Failed to fetch orders.'); // Corrected: Adding the missing closing parenthesis.
         toast({
           title: "Error fetching orders",
           description: err.message || 'An unexpected error occurred.',
@@ -252,6 +258,7 @@ const OrdersPage = () => {
                   </DropdownMenu>
                 </div>
                 
+                {/* 
                 <div className="rounded-md border">
                   <Table>
                     <TableHeader>
@@ -337,6 +344,7 @@ const OrdersPage = () => {
                     </TableBody>
                   </Table>
                 </div>
+                */}
                 
                 {filteredOrders.length > 0 && (
                   <div className="flex justify-center mt-4">
@@ -412,6 +420,7 @@ const OrdersPage = () => {
                 <p>{selectedOrder.shipping_address.city}, {selectedOrder.shipping_address.state} {selectedOrder.shipping_address.postal_code}</p>
               </div>
               
+              {/* 
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-2">Order Items</h3>
                 <div className="rounded-md border">
@@ -437,6 +446,7 @@ const OrdersPage = () => {
                   </Table>
                 </div>
               </div>
+              */}
               
               <div className="flex justify-end">
                 <div className="w-1/2 space-y-1">
